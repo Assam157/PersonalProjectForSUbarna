@@ -1,9 +1,7 @@
-import React, { useRef, useEffect, useState } from "react";
-import gifshot from "gifshot";
+import React, { useRef, useEffect } from "react";
 
 export default function BearCanvas() {
   const canvasRef = useRef(null);
-  const [recording, setRecording] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -12,7 +10,6 @@ export default function BearCanvas() {
     const H = canvas.height;
 
     let t = 0;
-    let frames = [];
     let animationId;
 
     /* ================= DRAW FUNCTIONS ================= */
@@ -20,25 +17,30 @@ export default function BearCanvas() {
     function drawBrownBear(heartPulse, happy) {
       ctx.fillStyle = "#8b5a2b";
 
+      // body
       ctx.beginPath();
       ctx.ellipse(W / 2 + 80, H / 2 + 70, 110, 140, 0, 0, Math.PI * 2);
       ctx.fill();
 
+      // head
       ctx.beginPath();
       ctx.arc(W / 2 + 80, H / 2 - 90, 85, 0, Math.PI * 2);
       ctx.fill();
 
+      // ears
       ctx.beginPath();
       ctx.arc(W / 2 + 25, H / 2 - 155, 28, 0, Math.PI * 2);
       ctx.arc(W / 2 + 135, H / 2 - 155, 28, 0, Math.PI * 2);
       ctx.fill();
 
+      // eyes
       ctx.fillStyle = "#000";
       ctx.beginPath();
       ctx.arc(W / 2 + 55, H / 2 - 105, 6, 0, Math.PI * 2);
       ctx.arc(W / 2 + 105, H / 2 - 105, 6, 0, Math.PI * 2);
       ctx.fill();
 
+      // mouth (sad → happy)
       ctx.strokeStyle = "#000";
       ctx.lineWidth = 3;
       ctx.beginPath();
@@ -46,6 +48,7 @@ export default function BearCanvas() {
       else ctx.arc(W / 2 + 80, H / 2 - 55, 25, Math.PI, 0);
       ctx.stroke();
 
+      // heart (pulse → calm)
       ctx.save();
       ctx.translate(W / 2 + 80, H / 2 + 30);
       ctx.scale(heartPulse, heartPulse);
@@ -61,31 +64,37 @@ export default function BearCanvas() {
     function drawWhiteBear(x, reach) {
       ctx.fillStyle = "#f5f5f5";
 
+      // body
       ctx.beginPath();
       ctx.ellipse(x, H / 2 + 80, 95, 120, 0, 0, Math.PI * 2);
       ctx.fill();
 
+      // head
       ctx.beginPath();
       ctx.arc(x, H / 2 - 70, 70, 0, Math.PI * 2);
       ctx.fill();
 
+      // ears
       ctx.beginPath();
       ctx.arc(x - 45, H / 2 - 125, 22, 0, Math.PI * 2);
       ctx.arc(x + 45, H / 2 - 125, 22, 0, Math.PI * 2);
       ctx.fill();
 
+      // eyes
       ctx.fillStyle = "#333";
       ctx.beginPath();
       ctx.arc(x - 18, H / 2 - 85, 5, 0, Math.PI * 2);
       ctx.arc(x + 18, H / 2 - 85, 5, 0, Math.PI * 2);
       ctx.fill();
 
+      // smile
       ctx.strokeStyle = "#333";
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.arc(x, H / 2 - 55, 20, 0, Math.PI);
       ctx.stroke();
 
+      // reaching arm
       ctx.strokeStyle = "#eee";
       ctx.lineWidth = 18;
       ctx.beginPath();
@@ -129,61 +138,13 @@ export default function BearCanvas() {
       if (t > 140) drawBandage(Math.min((t - 140) / 80, 1));
       if (t > 220) drawText(Math.min((t - 220) / 80, 1));
 
-      // 🎥 RECORD FRAMES
-      if (recording && t <= 300) {
-        frames.push(canvas.toDataURL("image/png"));
-      }
-
-      // 🎁 EXPORT GIF
-      if (recording && t === 300) {
-       gifshot.createGIF(
-  {
-    images: frames,
-    gifWidth: W,
-    gifHeight: H,
-    frameDuration: 6,
-  },
-  (res) => {
-    if (!res.error) {
-      // Convert base64 → Blob
-      const byteString = atob(res.image.split(",")[1]);
-      const ab = new ArrayBuffer(byteString.length);
-      const ia = new Uint8Array(ab);
-
-      for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
-      }
-
-      const blob = new Blob([ab], { type: "image/gif" });
-      const url = URL.createObjectURL(blob);
-
-      // Force download
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "bear_love.gif";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
-  }
-);
-
-        setRecording(false);
-      }
-
       t += 1;
       animationId = requestAnimationFrame(animate);
     }
 
-    // 🔁 RESET WHEN RECORDING STARTS
-    t = 0;
-    frames = [];
-
     animate();
-
     return () => cancelAnimationFrame(animationId);
-  }, [recording]);
+  }, []);
 
   return (
     <div
@@ -191,15 +152,12 @@ export default function BearCanvas() {
         background: "#1e1e1e",
         height: "100vh",
         display: "flex",
-        flexDirection: "column",
         justifyContent: "center",
         alignItems: "center",
       }}
     >
       <canvas ref={canvasRef} width={760} height={720} />
-   
     </div>
   );
 }
-
 
