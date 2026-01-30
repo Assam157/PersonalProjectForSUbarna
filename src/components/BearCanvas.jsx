@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import gifshot from "gifshot";
 
-export default function BearLoveCanvas() {
+export default function BearCanvas() {
   const canvasRef = useRef(null);
   const [recording, setRecording] = useState(false);
 
@@ -13,9 +13,13 @@ export default function BearLoveCanvas() {
 
     let t = 0;
     let frames = [];
+    let animationId;
+
+    /* ================= DRAW FUNCTIONS ================= */
 
     function drawBrownBear(heartPulse, happy) {
       ctx.fillStyle = "#8b5a2b";
+
       ctx.beginPath();
       ctx.ellipse(W / 2 + 80, H / 2 + 70, 110, 140, 0, 0, Math.PI * 2);
       ctx.fill();
@@ -29,13 +33,13 @@ export default function BearLoveCanvas() {
       ctx.arc(W / 2 + 135, H / 2 - 155, 28, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = "black";
+      ctx.fillStyle = "#000";
       ctx.beginPath();
       ctx.arc(W / 2 + 55, H / 2 - 105, 6, 0, Math.PI * 2);
       ctx.arc(W / 2 + 105, H / 2 - 105, 6, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.strokeStyle = "black";
+      ctx.strokeStyle = "#000";
       ctx.lineWidth = 3;
       ctx.beginPath();
       if (happy) ctx.arc(W / 2 + 80, H / 2 - 70, 25, 0, Math.PI);
@@ -56,6 +60,7 @@ export default function BearLoveCanvas() {
 
     function drawWhiteBear(x, reach) {
       ctx.fillStyle = "#f5f5f5";
+
       ctx.beginPath();
       ctx.ellipse(x, H / 2 + 80, 95, 120, 0, 0, Math.PI * 2);
       ctx.fill();
@@ -91,15 +96,7 @@ export default function BearLoveCanvas() {
 
     function drawBandage(progress) {
       ctx.save();
-      // move bandage slightly downward to center of heart
       ctx.translate(W / 2 + 80, H / 2 + 45);
-      ctx.rotate(-0.35);
-      ctx.fillStyle = "white";
-      ctx.fillRect(-90 * progress, -10, 180 * progress, 20);
-      ctx.restore();
-    }(progress) {
-      ctx.save();
-      ctx.translate(W / 2 + 80, H / 2 + 30);
       ctx.rotate(-0.35);
       ctx.fillStyle = "white";
       ctx.fillRect(-90 * progress, -10, 180 * progress, 20);
@@ -115,6 +112,8 @@ export default function BearLoveCanvas() {
       ctx.globalAlpha = 1;
     }
 
+    /* ================= ANIMATION LOOP ================= */
+
     function animate() {
       ctx.clearRect(0, 0, W, H);
 
@@ -126,39 +125,81 @@ export default function BearLoveCanvas() {
 
       drawBrownBear(heartbeat, happy);
       drawWhiteBear(x, reach);
+
       if (t > 140) drawBandage(Math.min((t - 140) / 80, 1));
       if (t > 220) drawText(Math.min((t - 220) / 80, 1));
 
-      if (recording && t < 320) frames.push(canvas.toDataURL("image/png"));
-      if (recording && t === 320) {
-        gifshot.createGIF({ images: frames, gifWidth: W, gifHeight: H }, res => {
-          if (!res.error) {
-            const a = document.createElement("a");
-            a.href = res.image;
-            a.download = "bear_love.gif";
-            a.click();
-          }
-        });
+      // 🎥 RECORD FRAMES
+      if (recording && t <= 300) {
+        frames.push(canvas.toDataURL("image/png"));
+      }
+
+      // 🎁 EXPORT GIF
+      if (recording && t === 300) {
+       gifshot.createGIF(
+  {
+    images: frames,
+    gifWidth: W,
+    gifHeight: H,
+    frameDuration: 6,
+  },
+  (res) => {
+    if (!res.error) {
+      // Convert base64 → Blob
+      const byteString = atob(res.image.split(",")[1]);
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+
+      const blob = new Blob([ab], { type: "image/gif" });
+      const url = URL.createObjectURL(blob);
+
+      // Force download
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "bear_love.gif";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  }
+);
+
         setRecording(false);
       }
 
-      t++;
-      requestAnimationFrame(animate);
+      t += 1;
+      animationId = requestAnimationFrame(animate);
     }
 
+    // 🔁 RESET WHEN RECORDING STARTS
+    t = 0;
+    frames = [];
+
     animate();
+
+    return () => cancelAnimationFrame(animationId);
   }, [recording]);
 
   return (
-    <div style={{ background: "#1e1e1e", height: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+    <div
+      style={{
+        background: "#1e1e1e",
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
       <canvas ref={canvasRef} width={760} height={720} />
-      <button
-        onClick={() => setRecording(true)}
-        style={{ marginTop: 20, padding: "12px 20px", fontSize: 16, cursor: "pointer" }}
-      >
-        Export as GIF
-      </button>
+   
     </div>
   );
 }
+
 
